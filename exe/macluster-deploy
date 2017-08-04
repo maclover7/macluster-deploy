@@ -21,6 +21,9 @@ class Deploy
       else
         "#{@name}.mac2cluster.jonathanmoss.me"
       end
+
+    @environment_variables = configuration.key?('environment_variables') &&
+      configuration['environment_variables']
   end
 
   def run!
@@ -81,7 +84,17 @@ class Deploy
 
     labels = labels.map { |k, v| "--label '#{k}=#{v}'" }.join(' ')
 
-    if run_remote "docker run -d #{labels} -e 'RACK_ENV=production' #{@tagged_name}"
+    volumes = {}
+
+    if @environment_variables
+      volumes = {
+        "/root/#{@name}" => "/app/.env"
+      }
+
+      volumes = volumes.map { |k, v| "-v '#{k}:#{v}'" }.join(' ')
+    end
+
+    if run_remote "docker run -d #{labels} #{volumes} -e 'RACK_ENV=production' #{@tagged_name}"
       puts "Successfully started Docker container"
     else
       puts "Could not start Docker container"
