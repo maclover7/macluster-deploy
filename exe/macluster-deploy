@@ -81,7 +81,7 @@ class Deploy
 
     labels = labels.map { |k, v| "--label '#{k}=#{v}'" }.join(' ')
 
-    if run_remote "docker run -d #{labels} #{@tagged_name}"
+    if run_remote "docker run -d #{labels} -e 'RACK_ENV=production' #{@tagged_name}"
       puts "Successfully started Docker container"
     else
       puts "Could not start Docker container"
