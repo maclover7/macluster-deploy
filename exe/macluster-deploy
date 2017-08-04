@@ -1,0 +1,102 @@
+#!/usr/bin/env ruby
+
+require 'yaml'
+require 'securerandom'
+
+class Deploy
+  def initialize
+    configuration = YAML.load File.read("#{Dir.pwd}/maclover7.yml")
+
+    @name = configuration['name']
+    @untagged_name = "maclover7/#{@name}"
+
+    @signature = "#{@name}:#{SecureRandom.hex(3)}"
+    @tagged_name = "maclover7/#{@signature}"
+
+    @port = configuration['port']
+
+    @hosts =
+      if configuration['hosts']
+        configuration['hosts'].join(",")
+      else
+        "#{@name}.mac2cluster.jonathanmoss.me"
+      end
+  end
+
+  def run!
+    # local commands
+    build_image
+    push_image
+
+    # remote commands
+    pull_image
+    stop_containers
+    start_containers
+
+    puts "Deployed successfully!!"
+  end
+
+  private
+
+  def build_image
+    run_local "docker build -t #{@signature} ."
+    run_local "docker tag #{@signature} #{@tagged_name}"
+  end
+
+  def push_image
+    run_local "docker push #{@tagged_name}"
+  end
+
+  def pull_image
+    if run_remote "docker pull #{@tagged_name}"
+      puts "Successfully pulled Docker image"
+    else
+      puts "Could not pull Docker image"
+    end
+  end
+
+  def stop_containers
+    container_id = run_remote "docker ps --filter='label=traefik.backend=#{@untagged_name}' --format='{{.ID}}'"
+
+    if container_id
+      if run_remote("docker stop #{container_id}") == container_id
+        puts "Successfully stopped existing Docker container"
+      else
+        puts "Could not stop existing Docker container"
+      end
+    else
+      puts "No existing Docker container(s)"
+    end
+  end
+
+  def start_containers
+    labels = {
+      "traefik.backend" => @untagged_name,
+      "traefik.port" => @port,
+      "traefik.backend.healthcheck.path" => "/ping",
+      "traefik.backend.healthcheck.interval" => "5s",
+      "traefik.frontend.rule" => "Host:#{@hosts}",
+      "traefik.enable" => true
+    }
+
+    labels = labels.map { |k, v| "--label '#{k}=#{v}'" }.join(' ')
+
+    if run_remote "docker run -d #{labels} #{@tagged_name}"
+      puts "Successfully started Docker container"
+    else
+      puts "Could not start Docker container"
+    end
+  end
+
+  ###
+
+  def run_local(cmd)
+    system(cmd)
+  end
+
+  def run_remote(cmd)
+    %x[ssh root@104.131.30.252 \"#{cmd}"].strip!
+  end
+end
+
+Deploy.new.run!
