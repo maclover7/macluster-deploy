@@ -95,7 +95,7 @@ class Deploy
 
     if @volumes
       @volumes.each do |volume|
-        volume = volume.split!(':')
+        volume = volume.split(':')
         volumes.merge!({ volume[0] => volume[1] })
       end
     end
