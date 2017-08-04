@@ -24,6 +24,9 @@ class Deploy
 
     @environment_variables = configuration.key?('environment_variables') &&
       configuration['environment_variables']
+
+    @volumes = configuration.key?('volumes') &&
+      configuration['volumes']
   end
 
   def run!
@@ -87,10 +90,17 @@ class Deploy
     volumes = {}
 
     if @environment_variables
-      volumes = {
-        "/root/#{@name}.env" => "/app/.env"
-      }
+      volumes["/root/#{@name}.env"] = "/app/.env"
+    end
 
+    if @volumes
+      @volumes.each do |volume|
+        volume = volume.split!(':')
+        volumes.merge!({ volume[0] => volume[1] })
+      end
+    end
+
+    if volumes.length > 0
       volumes = volumes.map { |k, v| "-v '#{k}:#{v}'" }.join(' ')
     end
 
