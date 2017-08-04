@@ -73,8 +73,8 @@ class Deploy
     labels = {
       "traefik.backend" => @untagged_name,
       "traefik.port" => @port,
-      "traefik.backend.healthcheck.path" => "/ping",
-      "traefik.backend.healthcheck.interval" => "5s",
+      #"traefik.backend.healthcheck.path" => "/ping",
+      #"traefik.backend.healthcheck.interval" => "5s",
       "traefik.frontend.rule" => "Host:#{@hosts}",
       "traefik.enable" => true
     }
