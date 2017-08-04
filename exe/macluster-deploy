@@ -88,7 +88,7 @@ class Deploy
 
     if @environment_variables
       volumes = {
-        "/root/#{@name}" => "/app/.env"
+        "/root/#{@name}.env" => "/app/.env"
       }
 
       volumes = volumes.map { |k, v| "-v '#{k}:#{v}'" }.join(' ')
