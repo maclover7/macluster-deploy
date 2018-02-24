@@ -102,9 +102,12 @@ class Deploy
 
     if volumes.length > 0
       volumes = volumes.map { |k, v| "-v '#{k}:#{v}'" }.join(' ')
+    else
+      volumes = ''
     end
 
-    if run_remote "docker run -d #{labels} #{volumes} -e 'RACK_ENV=production' #{@tagged_name}"
+    cmd = "docker run -d #{labels} #{volumes} -e 'NODE_ENV=production RACK_ENV=production' #{@tagged_name}"
+    if run_remote(cmd)
       puts "Successfully started Docker container"
     else
       puts "Could not start Docker container"
